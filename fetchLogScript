@@ -3,12 +3,13 @@
 	
 	$usrname = "Your_SF_Username"
     $dpath=  "Path_to_Save_file_on_Local"  # Path to store logFile
-    $sleeptime=180  
-    $maxCycle= 50
+    $sleeptime=180  # This is the wait period to hit API again
+    $maxCycle= 50   # Keep this number to limit your hits
     $lstMdfdDate= [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId( ` (Get-Date).AddMinutes(-0.5), 'Greenwich Standard Time').ToString("yyyy-MM-ddTHH:mm:ssZ")
      Do{
      Write-Host "SOQL On>" $lstMdfdDate
     # Please run below Query in DataLoader to verify
+    # Optimize the query to reduce the load
     $SOQL = "SELECT Id,LastModifiedDate,LogUserId,StartTime,Status FROM ApexLog WHERE LastModifiedDate >=" + $lstMdfdDate
 
 
@@ -21,7 +22,8 @@
          foreach ($logval in $logJSON.result.records){
            if($logval.status -ne 'Read timed out'){
               $fpath=  $dpath +$logval.id +  ".txt"
-               # sfdx force:apex:log:get -i $logval.id  -u $usrname | Out-file -filepath $fpath
+              sfdx force:apex:log:get -i $logval.id  -u $usrname | Out-file -filepath $fpath	      
+	      # large volume of data can slow fetchinga and saving logs. Hence Optimize your above SOQL as much as possible.  
            }
         }
      }else{
