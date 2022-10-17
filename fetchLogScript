@@ -1,0 +1,40 @@
+    
+	sfdx auth:web:login -r SF_MyDomain_URL  # Run Only Once    
+	
+	$usrname = "Your_SF_Username"
+    $dpath=  "Path_to_Save_file_on_Local"  # Path to store logFile
+    $sleeptime=180  
+    $maxCycle= 50
+    $lstMdfdDate= [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId( ` (Get-Date).AddMinutes(-0.5), 'Greenwich Standard Time').ToString("yyyy-MM-ddTHH:mm:ssZ")
+     Do{
+     Write-Host "SOQL On>" $lstMdfdDate
+    # Please run below Query in DataLoader to verify
+    $SOQL = "SELECT Id,LastModifiedDate,LogUserId,StartTime,Status FROM ApexLog WHERE LastModifiedDate >=" + $lstMdfdDate
+
+
+     $logoutput= sfdx force:data:soql:query -q $SOQL --json  -u $usrname
+
+     $logJSON= $logoutput | ConvertFrom-Json
+     $logList= $logJSON.result.records
+     Write-Host "Recrds::: " $logList.count
+     if($logList.count -gt 0){
+         foreach ($logval in $logJSON.result.records){
+           if($logval.status -ne 'Read timed out'){
+              $fpath=  $dpath +$logval.id +  ".txt"
+               # sfdx force:apex:log:get -i $logval.id  -u $usrname | Out-file -filepath $fpath
+           }
+        }
+     }else{
+          Write-Host "No Logs Found at "
+          Write-Host $lstMdfdDate
+     }
+     Write-Host "Recrds::: " $logList.count
+     Write-Host "Before Adjust>" (-($sleeptime/60)-1)
+     Write-Host "Before Adjust>" $lstMdfdDate
+     $lstMdfdDate = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId( ` (Get-Date).AddMinutes(-($sleeptime/60)-1), 'Greenwich Standard Time').ToString("yyyy-MM-ddTHH:mm:ssZ")
+     Write-Host "After Adjust>" $lstMdfdDate
+     $count = $count+1
+     Write-Host "Count2"  $count.ToString()
+        Start-Sleep -Seconds $sleeptime
+
+    } While ($count -ne $maxCycle)
